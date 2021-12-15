@@ -21,6 +21,9 @@ files <-files[-(which(filesizes < 4))]
 
 pilotdata <- sapply(files, read.csv, simplify=FALSE) %>% bind_rows(.id = "fileId")
 
+# changing realcomparison from zero-indexed to one-indexed
+pilotdata$realcomparison <- pilotdata$realcomparison + 1
+
 participantsIDFrame <- data.frame(unique(pilotdata$participant))
 
 # variables of interest from collected data
@@ -49,14 +52,14 @@ rowsTotalSetHEX <- rbind(data.frame(colour = firstColourSetHEX), data.frame(colo
 # preliminary check that the data has been read in correctly
 countOfUniqueRowsFirstSet <- length(unique(firstColourSetHEX))
 countOfUniqueRowsSecondSet <- length(unique(secondColourSetHEX))
-countOfUniqueRowsTotalSet <- nrow(unique(rowsTotalSetHEX))
+countOfUniqueRowsTotalSet <- length(rowsTotalSetHEX$colour)
 
 # set lower triangle of matrix to NA - this gives heatmap it's unique upper triangle
-upperTriangularMatrix <- tril(matrix(1, ncol = countOfUniqueRowsTotalSet, nrow = countOfUniqueRowsTotalSet), diag=FALSE)
+upperTriangularMatrix <- tril(matrix(1, ncol = countOfUniqueRowsTotalSet, nrow = countOfUniqueRowsTotalSet), diag = FALSE)
 upperTriangularMatrix[upperTriangularMatrix == 1] <- NA
 uniqueColourCountDF <- data.frame(upperTriangularMatrix)
 # setting all give colours as both row and column names
-colnames(uniqueColourCountDF) <- rownames(uniqueColourCountDF) <- uniqueRowsTotalSetHEX$colour
+colnames(uniqueColourCountDF) <- rownames(uniqueColourCountDF) <- rowsTotalSetHEX$colour
 
 
 currentRealComparisionCount <- as.data.frame(matrix(0, nrow(colourSetHEX), 1))
@@ -79,12 +82,12 @@ for (i in 1:nrow(trialdata)){
     previousParticipantID <- currParticipantID
   }
   
-  currRC <- currentParticipantOBS[,"realcomparison"] + 1
+  currRC <- currentParticipantOBS[,"realcomparison"]
   
 
   currentRealComparisionCount[currRC,] <- currentRealComparisionCount[currRC,] + 1
 
-  # counts of only the first pass of each participant
+  # counts only the first pass of each participant
   if(currentRealComparisionCount[currRC,] == 1){
 
     HEX1 <- colourSetHEX[currRC,1]
@@ -137,11 +140,68 @@ ggplot(longUniqueColourCountDF, aes(colour1, colour2, fill=count)) +
         axis.title.x = element_blank(), axis.title.y = element_blank())
 
 
+uniqueColourDoublePassCountDF <- data.frame(upperTriangularMatrix)
+colnames(uniqueColourDoublePassCountDF) <- rownames(uniqueColourDoublePassCountDF) <- rowsTotalSetHEX$colour
+currentRealComparisionCount <- as.data.frame(matrix(0, nrow(colourSetHEX), 1))
+previousParticipantID <- NULL
+isNewParticipant <- FALSE
+
+# loop responsible for population of colour comparison matrix
+for (i in 1:nrow(trialdata)){
+  currentParticipantOBS <- trialdata[i,]
+  currParticipantID <- currentParticipantOBS[,"participant"]
+  if(i == 1){
+    
+    previousParticipantID <- currParticipantID
+  }
+  isNewParticipant <- previousParticipantID != currParticipantID
+  if (isNewParticipant){
+    
+    currentRealComparisionCount <- as.data.frame(matrix(0, nrow(colourSetHEX), 1))
+    previousParticipantID <- currParticipantID
+  }
+  
+  currRC <- currentParticipantOBS[,"realcomparison"]
+  
+  
+  currentRealComparisionCount[currRC,] <- currentRealComparisionCount[currRC,] + 1
+  
+  # counts both passes of each participant
+  if(currentRealComparisionCount[currRC,] <= 2){
+    
+    HEX1 <- colourSetHEX[currRC,1]
+    
+    HEX2 <- colourSetHEX[currRC,2]
+    
+    if(is.na(uniqueColourDoublePassCountDF[HEX1, HEX2])){
+      uniqueColourDoublePassCountDF[HEX2, HEX1] <- uniqueColourDoublePassCountDF[HEX2, HEX1] + 1
+    }else{
+      uniqueColourDoublePassCountDF[HEX1, HEX2] <- uniqueColourDoublePassCountDF[HEX1, HEX2] + 1
+    }
+    
+  }
+  
+}
+
+
+# setting all give colours as both row and column names
+
+longUniqueDoublePassColourCountDF <- matrixToLongFormat(uniqueColourDoublePassCountDF)
+
+# two pass count heatmap
+ggplot(longUniqueDoublePassColourCountDF, aes(colour1, colour2, fill=count)) + 
+  geom_tile() + scale_fill_viridis(discrete=FALSE) +
+  theme_ipsum() + 
+  theme(legend.key.size = unit(1.2,"line"),
+        axis.text.x = element_text(colour=longUniqueDoublePassColourCountDF$colour2, angle=90),
+        axis.text.y = element_text(colour=longUniqueDoublePassColourCountDF$colour2),
+        axis.title.x = element_blank(), axis.title.y = element_blank())
+
 
 currentRealComparisionCount <- as.data.frame(matrix(0, nrow(colourSetHEX), 1))
-sameColourDissimilarity <- as.data.frame(matrix(0, nrow(uniqueRowsTotalSetHEX), 2))
+sameColourDissimilarity <- as.data.frame(matrix(0, length(rowsTotalSetHEX$colour), 2))
 colnames(sameColourDissimilarity) <- c("sum", "count")
-rownames(sameColourDissimilarity) <- uniqueRowsTotalSetHEX$colour
+rownames(sameColourDissimilarity) <- rowsTotalSetHEX$colour
 previousParticipantID <- NULL
 isNewParticipant <- FALSE
 
@@ -157,7 +217,7 @@ for (i in 1:nrow(trialdata)){
     previousParticipantID <- currParticipantID
   }
   
-  currRC <- currentParticipantOBS[,"realcomparison"] + 1
+  currRC <- currentParticipantOBS[,"realcomparison"]
   
     
   currentRealComparisionCount[currRC,] <- currentRealComparisionCount[currRC,] + 1
@@ -175,7 +235,6 @@ for (i in 1:nrow(trialdata)){
       
   }
   
-  
 }
 
 
@@ -188,42 +247,16 @@ ggplot(sameColourDissimilarity, aes(x=average)) + geom_histogram(bins=31) + scal
 ggplot(sameColourDissimilarity, aes(x=count)) + geom_histogram(bins=30) + scale_x_continuous(limits=c(0, 31))
 
 
-joinRGBvaluesToRows <- function(d) {
-  # function for RGB colour spectrum
-  # note: SLOW and could be improved by 'joins'
-
-  coloursToAppend <- as.data.frame(matrix(NA, nrow(d), ncol(truthColourTable)*1.5))
-  colnames(coloursToAppend) <- c("r1", "g1", "b1", "r2", "g2", "b2", "rDiff", "gDiff", "bDiff")
-  d <- cbind(d, coloursToAppend)
-  
-  for(i in 1:nrow(d)){
-    
-    currentParticipantOBS <- d[i,]
-    currRC <- currentParticipantOBS$realcomparison + 1
-
-
-    obsColours <- truthColourTable[currRC, ]
-
-    for (colourAxis in colnames(obsColours)){
-      d[i, colourAxis] <- obsColours[, colourAxis]
-    }
-    
-    d[i, "rDiff"] <- abs(obsColours[, "r1"]- obsColours[, "r2"])
-    d[i, "gDiff"] <- abs(obsColours[, "g1"]- obsColours[, "g2"])
-    d[i, "bDiff"] <- abs(obsColours[, "b1"]- obsColours[, "b2"])
-    
-  }
-  
-  
-  return(d)
-}
-
 # taking the mean of each participant (if double pass was reached)
 aggDataDFStabilised <- trialdata %>% group_by(participant, realcomparison) %>% summarise(dissimilarity_mean=(mean(similarity)), response_time_mean = mean(response_time))
 
 aggDataDFStabilised$dissimilarity_mean <- as.factor(aggDataDFStabilised$dissimilarity_mean)
 
-aggDataDFStabilised <- joinRGBvaluesToRows(aggDataDFStabilised)
+# left join (truth table row number on agg data realcomparison)
+aggDataDFStabilised <- merge(x = aggDataDFStabilised, y = truthColourTable, by.x = "realcomparison" , by.y = 0, all.x = TRUE) 
+aggDataDFStabilised$rDiff <- abs(aggDataDFStabilised$r1 - aggDataDFStabilised$r2)
+aggDataDFStabilised$gDiff <- abs(aggDataDFStabilised$g1 - aggDataDFStabilised$g2)
+aggDataDFStabilised$bDiff <- abs(aggDataDFStabilised$b1 - aggDataDFStabilised$b2)
 
 
 getConfInt <- function(m, level=0.99){
@@ -265,10 +298,10 @@ getConfInt(probitModel)
 # 
 # lnewdat <- melt(newdat, id.vars = c("rDiff", "gDiff", "bDiff", "response_time_mean"),
 #                 variable.name = "Level", value.name="Probability")
-
-ggplot(lnewdat, aes(x = response_time_mean, y = Probability, colour = Level)) +
-  geom_line() + facet_grid(rDiff ~ gDiff ~ bDiff, labeller="label_both")
-
+# 
+# ggplot(lnewdat, aes(x = response_time_mean, y = Probability, colour = Level)) +
+#   geom_line() + facet_grid(rDiff ~ gDiff ~ bDiff, labeller="label_both")
+# 
 
 # image(1:length(longUniqueColourCountDF$colour2), 1, 
 #       as.matrix(1:length(longUniqueColourCountDF$colour2)), col=longUniqueColourCountDF$colour2,
