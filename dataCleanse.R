@@ -84,7 +84,7 @@ for (i in 1:nrow(trialdata)){
 
   currentRealComparisionCount[currRC,] <- currentRealComparisionCount[currRC,] + 1
 
-  
+  # counts of only the first pass of each participant
   if(currentRealComparisionCount[currRC,] == 1){
 
     HEX1 <- colourSetHEX[currRC,1]
@@ -127,6 +127,7 @@ matrixToLongFormat <- function (uniqueColourCountDF){
 
 longUniqueColourCountDF <- matrixToLongFormat(uniqueColourCountDF)
 
+# first pass count heatmap
 ggplot(longUniqueColourCountDF, aes(colour1, colour2, fill=count)) + 
   geom_tile() + scale_fill_viridis(discrete=FALSE) +
   theme_ipsum() + 
@@ -165,6 +166,7 @@ for (i in 1:nrow(trialdata)){
   
   HEX2 <- colourSetHEX[[currRC,2]]
   
+  # counts of only the first pass of each participant and the two HEX values are the same
   if(currentRealComparisionCount[currRC,] == 1 & HEX1 == HEX2){
 
     sameColourDissimilarity[HEX1, "sum"] <- sameColourDissimilarity[HEX1, "sum"] + currentParticipantOBS[, "similarity"]
@@ -187,6 +189,8 @@ ggplot(sameColourDissimilarity, aes(x=count)) + geom_histogram(bins=30) + scale_
 
 
 joinRGBvaluesToRows <- function(d) {
+  # function for RGB colour spectrum
+  # note: SLOW and could be improved by 'joins'
 
   coloursToAppend <- as.data.frame(matrix(NA, nrow(d), ncol(truthColourTable)*1.5))
   colnames(coloursToAppend) <- c("r1", "g1", "b1", "r2", "g2", "b2", "rDiff", "gDiff", "bDiff")
@@ -214,6 +218,7 @@ joinRGBvaluesToRows <- function(d) {
   return(d)
 }
 
+# taking the mean of each participant (if double pass was reached)
 aggDataDFStabilised <- trialdata %>% group_by(participant, realcomparison) %>% summarise(dissimilarity_mean=(mean(similarity)), response_time_mean = mean(response_time))
 
 aggDataDFStabilised$dissimilarity_mean <- as.factor(aggDataDFStabilised$dissimilarity_mean)
@@ -222,6 +227,8 @@ aggDataDFStabilised <- joinRGBvaluesToRows(aggDataDFStabilised)
 
 
 getConfInt <- function(m, level=0.99){
+  # returns confidence intervals of all regression coefficients
+  # @m: model frame of interest
   m <- summary(m)
   conf <- as.data.frame(matrix(NA, 2, 0), row.names = c("lower", "upper"))
   zcrit <- qnorm(level)
@@ -247,17 +254,17 @@ getConfInt(logitModel)
 getConfInt(probitModel)
 
 
-newdat <- data.frame(
-  rDiff = rep(0:1, 200),
-  gDiff = rep(0:1, each = 200),
-  bDiff = rep(0:1, each = 200),
-  response_time_mean = rep(seq(from = 1.9, to = 4, length.out = 100), 4))
-
-newdat <- cbind(newdat, predict(logitModel, newdat, type = "probs"))
-
-
-lnewdat <- melt(newdat, id.vars = c("rDiff", "gDiff", "bDiff", "response_time_mean"),
-                variable.name = "Level", value.name="Probability")
+# newdat <- data.frame(
+#   rDiff = rep(0:1, 200),
+#   gDiff = rep(0:1, each = 200),
+#   bDiff = rep(0:1, each = 200),
+#   response_time_mean = rep(seq(from = 1.9, to = 4, length.out = 100), 4))
+# 
+# newdat <- cbind(newdat, predict(logitModel, newdat, type = "probs"))
+# 
+# 
+# lnewdat <- melt(newdat, id.vars = c("rDiff", "gDiff", "bDiff", "response_time_mean"),
+#                 variable.name = "Level", value.name="Probability")
 
 ggplot(lnewdat, aes(x = response_time_mean, y = Probability, colour = Level)) +
   geom_line() + facet_grid(rDiff ~ gDiff ~ bDiff, labeller="label_both")
