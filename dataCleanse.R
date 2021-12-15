@@ -14,7 +14,6 @@ files <- list.files(path="./data", pattern="*.csv", full.names=TRUE)
 filesizes <- file.size(files)
 
 truthColourTableColumnNames <- c("r1", "g1", "b1", "r2", "g2", "b2")
-
 truthColourTable <- read.csv("./colourcodes/colourcodes.csv", header=F)
 names(truthColourTable) <- truthColourTableColumnNames
 
@@ -24,6 +23,7 @@ pilotdata <- sapply(files, read.csv, simplify=FALSE) %>% bind_rows(.id = "fileId
 
 participantsIDFrame <- data.frame(unique(pilotdata$participant))
 
+# variables of interest from collected data
 trial_vars<- c( "participant", "practice_comparison", "pracsimilarity", "realcomparison", "similarity", "response_time", "trials_2.thisN") 
 catch_vars<- c("participant", "catch_response_time", "catchnumberprac", "catchpracsimilarity", "catchnumber", "catchsimilarity", "catchRT", "catchtrialorder")
 trialdata <- (pilotdata %>% filter(!is.na(realcomparison)))[trial_vars]
@@ -32,11 +32,13 @@ catchdata <- (pilotdata %>% filter(is.na(realcomparison)))[catch_vars]
 
 rgb2hex <- function(r, g, b) {rgb(r, g, b, maxColorValue = 255)}
 
+# compartmentalising the two dots presented to participants
 firstColourSet <- truthColourTable[,truthColourTableColumnNames[1:3]]
 secondColourSet <- truthColourTable[,truthColourTableColumnNames[4:6]]
 
 names(firstColourSet) <- names(secondColourSet) <- c("r", "g", "b")
 
+#conversion of 3 RGB columns in both colour tables to HEX for easier manipulation
 firstColourSetHEX <- apply(firstColourSet, 1, function (x) rgb2hex(x[1], x[2], x[3]))
 secondColourSetHEX <- apply(secondColourSet, 1, function (x) rgb2hex(x[1], x[2], x[3]))
 
@@ -44,69 +46,69 @@ colourSetHEX <- data.frame(firstColour = firstColourSetHEX, secondColour = secon
 
 rowsTotalSetHEX <- rbind(data.frame(colour = firstColourSetHEX), data.frame(colour = secondColourSetHEX)) %>% group_by_all %>% count
 
+# preliminary check that the data has been read in correctly
 countOfUniqueRowsFirstSet <- length(unique(firstColourSetHEX))
 countOfUniqueRowsSecondSet <- length(unique(secondColourSetHEX))
 countOfUniqueRowsTotalSet <- nrow(unique(rowsTotalSetHEX))
 
+# set lower triangle of matrix to NA - this gives heatmap it's unique upper triangle
 upperTriangularMatrix <- tril(matrix(1, ncol = countOfUniqueRowsTotalSet, nrow = countOfUniqueRowsTotalSet), diag=FALSE)
 upperTriangularMatrix[upperTriangularMatrix == 1] <- NA
 uniqueColourCountDF <- data.frame(upperTriangularMatrix)
-colnames(uniqueColourCountDF) <- uniqueRowsTotalSetHEX$colour
-rownames(uniqueColourCountDF) <- uniqueRowsTotalSetHEX$colour
+# setting all give colours as both row and column names
+colnames(uniqueColourCountDF) <- rownames(uniqueColourCountDF) <- uniqueRowsTotalSetHEX$colour
 
-# set lower triangle of matrix to NA
 
 currentRealComparisionCount <- as.data.frame(matrix(0, nrow(colourSetHEX), 1))
 previousParticipantID <- NULL
 isNewParticipant <- FALSE
 
-#matrix setup
-count = c()
 
+# loop responsible for population of colour comparison matrix
 for (i in 1:nrow(trialdata)){
   currentParticipantOBS <- trialdata[i,]
   currParticipantID <- currentParticipantOBS[,"participant"]
   if(i == 1){
-    count = append(count, currParticipantID)
+
     previousParticipantID <- currParticipantID
   }
   isNewParticipant <- previousParticipantID != currParticipantID
   if (isNewParticipant){
-    count = append(count, currParticipantID)
+
     currentRealComparisionCount <- as.data.frame(matrix(0, nrow(colourSetHEX), 1))
     previousParticipantID <- currParticipantID
   }
   
   currRC <- currentParticipantOBS[,"realcomparison"] + 1
   
-  if (currRC > 0){
-  
-    currentRealComparisionCount[currRC,] <- currentRealComparisionCount[currRC,] + 1
 
+  currentRealComparisionCount[currRC,] <- currentRealComparisionCount[currRC,] + 1
+
+  
+  if(currentRealComparisionCount[currRC,] == 1){
+
+    HEX1 <- colourSetHEX[currRC,1]
+
+    HEX2 <- colourSetHEX[currRC,2]
     
-    if(currentRealComparisionCount[currRC,] == 1){
-
-      HEX1 <- colourSetHEX[currRC,1]
-  
-      HEX2 <- colourSetHEX[currRC,2]
-      
-      if(is.na(uniqueColourCountDF[HEX1, HEX2])){
-        uniqueColourCountDF[HEX2, HEX1] <- uniqueColourCountDF[HEX2, HEX1] + 1
-      }else{
-        uniqueColourCountDF[HEX1, HEX2] <- uniqueColourCountDF[HEX1, HEX2] + 1
-      }
-  
+    if(is.na(uniqueColourCountDF[HEX1, HEX2])){
+      uniqueColourCountDF[HEX2, HEX1] <- uniqueColourCountDF[HEX2, HEX1] + 1
+    }else{
+      uniqueColourCountDF[HEX1, HEX2] <- uniqueColourCountDF[HEX1, HEX2] + 1
     }
+
   }
 
 }
 
 
 matrixToLongFormat <- function (uniqueColourCountDF){
-
+  # long format function necessary for ggplot heatmap
+  # @uniqueColourCountDF: matrix of colour comparison pairs
+  
   longUniqueColourCountDF <- data.frame()
   
-  # convert to long format
+  # loop to convert to long format
   for(r in 1:nrow(uniqueColourCountDF)){
     for(c in 1:ncol(uniqueColourCountDF)){
       if (!is.na(uniqueColourCountDF[r, c])){
@@ -156,22 +158,21 @@ for (i in 1:nrow(trialdata)){
   
   currRC <- currentParticipantOBS[,"realcomparison"] + 1
   
-  if (currRC > 0){
     
-    currentRealComparisionCount[currRC,] <- currentRealComparisionCount[currRC,] + 1
-    
-    HEX1 <- colourSetHEX[[currRC,1]]
-    
-    HEX2 <- colourSetHEX[[currRC,2]]
-    
-    if(currentRealComparisionCount[currRC,] == 1 & HEX1 == HEX2){
+  currentRealComparisionCount[currRC,] <- currentRealComparisionCount[currRC,] + 1
   
-      sameColourDissimilarity[HEX1, "sum"] <- sameColourDissimilarity[HEX1, "sum"] + currentParticipantOBS[, "similarity"]
+  HEX1 <- colourSetHEX[[currRC,1]]
+  
+  HEX2 <- colourSetHEX[[currRC,2]]
+  
+  if(currentRealComparisionCount[currRC,] == 1 & HEX1 == HEX2){
+
+    sameColourDissimilarity[HEX1, "sum"] <- sameColourDissimilarity[HEX1, "sum"] + currentParticipantOBS[, "similarity"]
+    
+    sameColourDissimilarity[HEX1, "count"] <- sameColourDissimilarity[HEX1, "count"] + 1
       
-      sameColourDissimilarity[HEX1, "count"] <- sameColourDissimilarity[HEX1, "count"] + 1
-        
-    }
   }
+  
   
 }
 
@@ -195,20 +196,20 @@ joinRGBvaluesToRows <- function(d) {
     
     currentParticipantOBS <- d[i,]
     currRC <- currentParticipantOBS$realcomparison + 1
-    if (currRC > 0){
 
-      obsColours <- truthColourTable[currRC, ]
 
-      for (colourAxis in colnames(obsColours)){
-        d[i, colourAxis] <- obsColours[, colourAxis]
-      }
-      
-      d[i, "rDiff"] <- abs(obsColours[, "r1"]- obsColours[, "r2"])
-      d[i, "gDiff"] <- abs(obsColours[, "g1"]- obsColours[, "g2"])
-      d[i, "bDiff"] <- abs(obsColours[, "b1"]- obsColours[, "b2"])
-      
+    obsColours <- truthColourTable[currRC, ]
+
+    for (colourAxis in colnames(obsColours)){
+      d[i, colourAxis] <- obsColours[, colourAxis]
     }
+    
+    d[i, "rDiff"] <- abs(obsColours[, "r1"]- obsColours[, "r2"])
+    d[i, "gDiff"] <- abs(obsColours[, "g1"]- obsColours[, "g2"])
+    d[i, "bDiff"] <- abs(obsColours[, "b1"]- obsColours[, "b2"])
+    
   }
+  
   
   return(d)
 }
