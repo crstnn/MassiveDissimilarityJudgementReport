@@ -8,6 +8,7 @@ library(MASS)
 library(hrbrthemes)
 library(scales)
 library(broom)
+library(pglm)
 
 # matching regex of any amount of characters then followed by .csv
 files <- list.files(path="./data", pattern="*.csv", full.names=TRUE)
@@ -17,20 +18,23 @@ truthColourTableColumnNames <- c("r1", "g1", "b1", "r2", "g2", "b2")
 truthColourTable <- read.csv("./colourcodes/colourcodes.csv", header=F)
 names(truthColourTable) <- truthColourTableColumnNames
 
-files <-files[-(which(filesizes < 4))]
+files <- files[-(which(filesizes < 4))]
 
 pilotdata <- sapply(files, read.csv, simplify=FALSE) %>% bind_rows(.id = "fileId")
 
 # changing realcomparison from zero-indexed to one-indexed
-pilotdata$realcomparison <- pilotdata$realcomparison + 1
 
 participantsIDFrame <- data.frame(unique(pilotdata$participant))
+
+pilotdata <- pilotdata %>% arrange("participant")
 
 # variables of interest from collected data
 trial_vars<- c( "participant", "practice_comparison", "pracsimilarity", "realcomparison", "similarity", "response_time", "trials_2.thisN") 
 catch_vars<- c("participant", "catch_response_time", "catchnumberprac", "catchpracsimilarity", "catchnumber", "catchsimilarity", "catchRT", "catchtrialorder")
 trialdata <- (pilotdata %>% filter(!is.na(realcomparison)))[trial_vars]
 catchdata <- (pilotdata %>% filter(is.na(realcomparison)))[catch_vars]
+
+trialdata$realcomparison <- trialdata$realcomparison + 1
 
 
 rgb2hex <- function(r, g, b) {rgb(r, g, b, maxColorValue = 255)}
@@ -259,7 +263,7 @@ aggDataDFStabilised$gDiff <- abs(aggDataDFStabilised$g1 - aggDataDFStabilised$g2
 aggDataDFStabilised$bDiff <- abs(aggDataDFStabilised$b1 - aggDataDFStabilised$b2)
 
 
-getConfInt <- function(m, level=0.99){
+getConfInterval <- function(m, level=0.99){
   # returns confidence intervals of all regression coefficients
   # @m: model frame of interest
   m <- summary(m)
@@ -276,15 +280,32 @@ getConfInt <- function(m, level=0.99){
 
 logitModel <- polr(formula = dissimilarity_mean ~ rDiff + gDiff + bDiff + response_time_mean , data = aggDataDFStabilised, method = "logistic")
 
-summary(logitModel)
 
 probitModel <- polr(formula = dissimilarity_mean ~ rDiff + gDiff + bDiff + response_time_mean, data = aggDataDFStabilised, method = "probit")
 
 options(scipen=999)
+summary(logitModel)
 summary(probitModel)
 
-getConfInt(logitModel)
-getConfInt(probitModel)
+getConfInterval(logitModel)
+getConfInterval(probitModel)
+
+
+aggDataDF <- merge(x = trialdata, y = truthColourTable, by.x = "realcomparison" , by.y = 0, all.x = TRUE) 
+aggDataDF$rDiff <- abs(aggDataDF$r1 - aggDataDF$r2)
+aggDataDF$gDiff <- abs(aggDataDF$g1 - aggDataDF$g2)
+aggDataDF$bDiff <- abs(aggDataDF$b1 - aggDataDF$b2)
+
+aggDataDF <- aggDataDF[c("participant","rDiff","gDiff","bDiff","response_time","similarity","realcomparison")]
+aggDataDF$participant <- as.numeric(factor(aggDataDF$participant))
+
+logitFEModel <- pglm(similarity ~ rDiff + gDiff + bDiff + response_time, data = aggDataDF,
+                     index = c('participant'), family = ordinal('logit'), model = 'random', na.action = na.omit, chunksize = 5000)
+
+summary(logitFEModel)
+
+probitFEModel <- pglm(similarity ~ rDiff + gDiff + bDiff + response_time, data = aggDataDF, index = 'participant', family = ordinal('probit'), model = 'random', method = 'bfgs', start = NULL)
+
 
 
 # newdat <- data.frame(
