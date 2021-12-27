@@ -8,6 +8,7 @@ library(MASS)
 library(hrbrthemes)
 library(scales)
 library(broom)
+library(pglm)
 
 # matching regex of any amount of characters then followed by .csv
 files <- list.files(path="./data", pattern="*.csv", full.names=TRUE)
@@ -17,20 +18,23 @@ truthColourTableColumnNames <- c("r1", "g1", "b1", "r2", "g2", "b2")
 truthColourTable <- read.csv("./colourcodes/colourcodes.csv", header=F)
 names(truthColourTable) <- truthColourTableColumnNames
 
-files <-files[-(which(filesizes < 4))]
+files <- files[-(which(filesizes < 4))]
 
 pilotdata <- sapply(files, read.csv, simplify=FALSE) %>% bind_rows(.id = "fileId")
 
 # changing realcomparison from zero-indexed to one-indexed
-pilotdata$realcomparison <- pilotdata$realcomparison + 1
 
 participantsIDFrame <- data.frame(unique(pilotdata$participant))
+
+pilotdata <- pilotdata %>% arrange("participant")
 
 # variables of interest from collected data
 trial_vars<- c( "participant", "practice_comparison", "pracsimilarity", "realcomparison", "similarity", "response_time", "trials_2.thisN") 
 catch_vars<- c("participant", "catch_response_time", "catchnumberprac", "catchpracsimilarity", "catchnumber", "catchsimilarity", "catchRT", "catchtrialorder")
 trialdata <- (pilotdata %>% filter(!is.na(realcomparison)))[trial_vars]
 catchdata <- (pilotdata %>% filter(is.na(realcomparison)))[catch_vars]
+
+trialdata$realcomparison <- trialdata$realcomparison + 1
 
 
 rgb2hex <- function(r, g, b) {rgb(r, g, b, maxColorValue = 255)}
@@ -54,7 +58,7 @@ countOfUniqueRowsFirstSet <- length(unique(firstColourSetHEX))
 countOfUniqueRowsSecondSet <- length(unique(secondColourSetHEX))
 countOfUniqueRowsTotalSet <- length(rowsTotalSetHEX$colour)
 
-# set lower triangle of matrix to NA - this gives heatmap it's unique upper triangle
+# set lower triangle of matrix to NA - this gives heatmap its unique upper triangle
 upperTriangularMatrix <- tril(matrix(1, ncol = countOfUniqueRowsTotalSet, nrow = countOfUniqueRowsTotalSet), diag = FALSE)
 upperTriangularMatrix[upperTriangularMatrix == 1] <- NA
 uniqueColourCountDF <- data.frame(upperTriangularMatrix)
@@ -99,9 +103,7 @@ for (i in 1:nrow(trialdata)){
     }else{
       uniqueColourCountDF[HEX1, HEX2] <- uniqueColourCountDF[HEX1, HEX2] + 1
     }
-
   }
-
 }
 
 
@@ -178,9 +180,7 @@ for (i in 1:nrow(trialdata)){
     }else{
       uniqueColourDoublePassCountDF[HEX1, HEX2] <- uniqueColourDoublePassCountDF[HEX1, HEX2] + 1
     }
-    
   }
-  
 }
 
 
@@ -232,9 +232,7 @@ for (i in 1:nrow(trialdata)){
     sameColourDissimilarity[HEX1, "sum"] <- sameColourDissimilarity[HEX1, "sum"] + currentParticipantOBS[, "similarity"]
     
     sameColourDissimilarity[HEX1, "count"] <- sameColourDissimilarity[HEX1, "count"] + 1
-      
   }
-  
 }
 
 
@@ -259,7 +257,7 @@ aggDataDFStabilised$gDiff <- abs(aggDataDFStabilised$g1 - aggDataDFStabilised$g2
 aggDataDFStabilised$bDiff <- abs(aggDataDFStabilised$b1 - aggDataDFStabilised$b2)
 
 
-getConfInt <- function(m, level=0.99){
+getConfInterval <- function(m, level=0.99){
   # returns confidence intervals of all regression coefficients
   # @m: model frame of interest
   m <- summary(m)
@@ -276,15 +274,32 @@ getConfInt <- function(m, level=0.99){
 
 logitModel <- polr(formula = dissimilarity_mean ~ rDiff + gDiff + bDiff + response_time_mean , data = aggDataDFStabilised, method = "logistic")
 
-summary(logitModel)
 
 probitModel <- polr(formula = dissimilarity_mean ~ rDiff + gDiff + bDiff + response_time_mean, data = aggDataDFStabilised, method = "probit")
 
 options(scipen=999)
+summary(logitModel)
 summary(probitModel)
 
-getConfInt(logitModel)
-getConfInt(probitModel)
+getConfInterval(logitModel)
+getConfInterval(probitModel)
+
+
+aggDataDF <- merge(x = trialdata, y = truthColourTable, by.x = "realcomparison" , by.y = 0, all.x = TRUE) 
+aggDataDF$rDiff <- abs(aggDataDF$r1 - aggDataDF$r2)
+aggDataDF$gDiff <- abs(aggDataDF$g1 - aggDataDF$g2)
+aggDataDF$bDiff <- abs(aggDataDF$b1 - aggDataDF$b2)
+
+aggDataDF <- aggDataDF[c("participant","rDiff","gDiff","bDiff","response_time","similarity","realcomparison")]
+aggDataDF$participant <- as.numeric(factor(aggDataDF$participant))
+
+logitFEModel <- pglm(similarity ~ rDiff + gDiff + bDiff + response_time, data = aggDataDF,
+                     index = c('participant'), family = ordinal('logit'), model = 'random', na.action = na.omit, chunksize = 5000)
+
+summary(logitFEModel)
+
+probitFEModel <- pglm(similarity ~ rDiff + gDiff + bDiff + response_time, data = aggDataDF, index = 'participant', family = ordinal('probit'), model = 'random', method = 'bfgs', start = NULL)
+
 
 
 # newdat <- data.frame(
@@ -302,7 +317,7 @@ getConfInt(probitModel)
 # ggplot(lnewdat, aes(x = response_time_mean, y = Probability, colour = Level)) +
 #   geom_line() + facet_grid(rDiff ~ gDiff ~ bDiff, labeller="label_both")
 # 
-
+#
 # image(1:length(longUniqueColourCountDF$colour2), 1, 
 #       as.matrix(1:length(longUniqueColourCountDF$colour2)), col=longUniqueColourCountDF$colour2,
 #       xlab="", ylab = "", xaxt = "n", yaxt = "n", bty = "n")
