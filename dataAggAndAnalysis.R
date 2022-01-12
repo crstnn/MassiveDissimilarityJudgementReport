@@ -245,6 +245,18 @@ ggplot(sameColourDissimilarity, aes(x=average)) + geom_histogram(bins=31) + scal
 ggplot(sameColourDissimilarity, aes(x=count)) + geom_histogram(bins=30) + scale_x_continuous(limits=c(0, 31))
 
 
+aggDataDF <- merge(x = trialdata, y = truthColourTable, by.x = "realcomparison" , by.y = 0, all.x = TRUE) 
+aggDataDF$rDiff <- abs(aggDataDF$r1 - aggDataDF$r2)
+aggDataDF$gDiff <- abs(aggDataDF$g1 - aggDataDF$g2)
+aggDataDF$bDiff <- abs(aggDataDF$b1 - aggDataDF$b2)
+aggDataDF$RGBdiffSum <- aggDataDF$rDiff + aggDataDF$gDiff + aggDataDF$bDiff
+aggDataDF$similarity <- as.factor(aggDataDF$similarity)
+
+ggplot(aggDataDF, aes(x=RGBdiffSum, y=similarity)) + 
+  geom_violin()
+
+# hist(aggDataDF$RGBdiffSum)
+
 # taking the mean of each participant (if double pass was reached)
 aggDataDFStabilised <- trialdata %>% group_by(participant, realcomparison) %>% summarise(dissimilarity_mean=(mean(similarity)), response_time_mean = mean(response_time))
 
@@ -272,10 +284,10 @@ getConfInterval <- function(m, level=0.99){
 }
 
 
-logitModel <- polr(formula = dissimilarity_mean ~ rDiff + gDiff + bDiff + response_time_mean , data = aggDataDFStabilised, method = "logistic")
+logitModel <- polr(formula = similarity ~ rDiff + gDiff + bDiff + response_time, data = aggDataDF, method = "logistic")
 
 
-probitModel <- polr(formula = dissimilarity_mean ~ rDiff + gDiff + bDiff + response_time_mean, data = aggDataDFStabilised, method = "probit")
+probitModel <- polr(formula = similarity ~ rDiff + gDiff + bDiff + response_time, data = aggDataDF, method = "probit")
 
 options(scipen=999)
 summary(logitModel)
@@ -285,13 +297,7 @@ getConfInterval(logitModel)
 getConfInterval(probitModel)
 
 
-aggDataDF <- merge(x = trialdata, y = truthColourTable, by.x = "realcomparison" , by.y = 0, all.x = TRUE) 
-aggDataDF$rDiff <- abs(aggDataDF$r1 - aggDataDF$r2)
-aggDataDF$gDiff <- abs(aggDataDF$g1 - aggDataDF$g2)
-aggDataDF$bDiff <- abs(aggDataDF$b1 - aggDataDF$b2)
 
-aggDataDF <- aggDataDF[c("participant","rDiff","gDiff","bDiff","response_time","similarity","realcomparison")]
-aggDataDF$participant <- as.numeric(factor(aggDataDF$participant))
 
 logitFEModel <- pglm(similarity ~ rDiff + gDiff + bDiff + response_time, data = aggDataDF,
                      index = c('participant'), family = ordinal('logit'), model = 'random', na.action = na.omit, chunksize = 5000)
