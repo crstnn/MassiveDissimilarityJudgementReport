@@ -2,10 +2,12 @@ truthColourTableColumnNames <- c("r1", "g1", "b1", "r2", "g2", "b2")
 truthColourTable <- read.csv("./colourcodes/colourcodes.csv", header=F)
 names(truthColourTable) <- truthColourTableColumnNames
 
-# with the help of: http://www.easyrgb.com/en/math.php
-# https://www.mathworks.com/help/images/ref/whitepoint.html
+
+# Consider for XYZ reference values: https://www.mathworks.com/help/images/ref/whitepoint.html
 
 sRGBtoXYZ <- function(sR, sG, sB) {
+  # https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation
+  
   R = sR / 255
   G = sG / 255
   B = sB / 255
@@ -27,17 +29,21 @@ sRGBtoXYZ <- function(sR, sG, sB) {
 }
 
 XYZtoCIELab <- function(X, Y, Z) {
-  reference_X <- 1.0985 # TODO: May need changing
-  reference_Y <- 1.0000 # TODO: May need changing
-  reference_Z <- 0.3558 # TODO: May need changing
+  # https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation
+  
+  reference_X <- 95.0489 # TODO: Standard Illuminant D65 May need changing
+  reference_Y <- 100 # TODO: Standard Illuminant D65 May need changing
+  reference_Z <- 108.8840 # TODO:Standard Illuminant D65 May need changing
   
   X = X / reference_X
   Y = Y / reference_Y
   Z = Z / reference_Z
   
-  if ( X > 0.008856 ) {X = X ^ ( 1/3 )} else {X = ( 7.787 * X ) + ( 16 / 116 )}                   
-  if ( Y > 0.008856 ) {Y = Y ^ ( 1/3 )} else {Y = ( 7.787 * Y ) + ( 16 / 116 )}
-  if ( Z > 0.008856 ) {Z = Z ^ ( 1/3 )} else {Z = ( 7.787 * Z ) + ( 16 / 116 )}
+  delta = (6/29)^3
+  
+  if ( X > delta ) {X = X ^ ( 1/3 )} else {X = (X/(3*delta^2)) + (4/29)}                   
+  if ( Y > delta ) {Y = Y ^ ( 1/3 )} else {Y = (Y/(3*delta^2)) + (4/29)}
+  if ( Z > delta ) {Z = Z ^ ( 1/3 )} else {Z = (Z/(3*delta^2)) + (4/29)}
   
   CIE_L = ( 116 * Y ) - 16
   CIE_a = 500 * ( X - Y )
@@ -55,4 +61,4 @@ sRGBtoCIELab <-function(sR, sG, sB) {
 firstColourSetCIELab <- t(apply(firstColourSet, 1, function (x) sRGBtoCIELab(x[[1]], x[[2]], x[[3]])))
 secondColourSetCIELab <- t(apply(secondColourSet, 1, function (x) sRGBtoCIELab(x[[1]], x[[2]], x[[3]])))
 
-colnames(firstColourSetCIELab) <- colnames(secondColourSetCIELab) <- c("L", "A", "B")
+colnames(firstColourSetCIELab) <- colnames(secondColourSetCIELab) <- c("L", "a", "b")
