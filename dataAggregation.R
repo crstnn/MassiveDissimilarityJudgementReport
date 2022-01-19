@@ -37,7 +37,6 @@ trialdata = rename(trialdata, dissimilarity = similarity)
 
 trialdata$realcomparison <- trialdata$realcomparison + 1
 
-
 rgb2hex <- function(r, g, b) {rgb(r, g, b, maxColorValue = 255)}
 
 # compartmentalising the two dots presented to participants
