@@ -31,19 +31,19 @@ sRGBtoXYZ <- function(sR, sG, sB) {
 XYZtoCIELab <- function(X, Y, Z) {
   # https://en.wikipedia.org/wiki/CIELAB_color_space#From_CIEXYZ_to_CIELAB
   
-  reference_X <- 95.0489 # TODO: Standard Illuminant D65 May need changing
-  reference_Y <- 100 # TODO: Standard Illuminant D65 May need changing
-  reference_Z <- 108.8840 # TODO:Standard Illuminant D65 May need changing
+  reference_X <- 0.9642 # TODO: Standard Illuminant D65 May need changing
+  reference_Y <- 1 # TODO: Standard Illuminant D65 May need changing
+  reference_Z <- 0.8249 # TODO:Standard Illuminant D65 May need changing
   
   X = X / reference_X
   Y = Y / reference_Y
   Z = Z / reference_Z
   
-  delta = (6/29)^3
+  delta = (6/29)
   
-  if ( X > delta ) {X = X ^ ( 1/3 )} else {X = (X/(3*delta^2)) + (4/29)}                   
-  if ( Y > delta ) {Y = Y ^ ( 1/3 )} else {Y = (Y/(3*delta^2)) + (4/29)}
-  if ( Z > delta ) {Z = Z ^ ( 1/3 )} else {Z = (Z/(3*delta^2)) + (4/29)}
+  if ( X > delta^3 ) {X = X ^ ( 1/3 )} else {X = (X/(3*(delta^2))) + (4/29)}                   
+  if ( Y > delta^3 ) {Y = Y ^ ( 1/3 )} else {Y = (Y/(3*(delta^2))) + (4/29)}
+  if ( Z > delta^3 ) {Z = Z ^ ( 1/3 )} else {Z = (Z/(3*(delta^2))) + (4/29)}
   
   CIE_L = ( 116 * Y ) - 16
   CIE_a = 500 * ( X - Y )
