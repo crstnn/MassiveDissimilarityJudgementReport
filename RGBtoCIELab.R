@@ -29,7 +29,7 @@ sRGBtoXYZ <- function(sR, sG, sB) {
 }
 
 XYZtoCIELab <- function(X, Y, Z) {
-  # https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation
+  # https://en.wikipedia.org/wiki/CIELAB_color_space#From_CIEXYZ_to_CIELAB
   
   reference_X <- 95.0489 # TODO: Standard Illuminant D65 May need changing
   reference_Y <- 100 # TODO: Standard Illuminant D65 May need changing
