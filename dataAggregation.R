@@ -56,41 +56,54 @@ ggplot(trialdata, aes(x=dissimilarity)) + geom_histogram(bins = 8) + scale_x_con
 # -----------------------CATCH-TRIAL ANALYSIS-----------------------------
 
 # checking whether catchnumber matches catchsimiliarity for any given row
-catchdata <- catchdata %>% mutate(
+catchdataValidParticipants <- catchdata %>% mutate(
   is_valid_catch_response = if_else(catchnumber == catchsimilarity, 1, 0), 
   is_invalid_catch_response = if_else(catchnumber != catchsimilarity, 1, 0))
 
 # per participant (*based on unique ID) count of correct and incorrect responses
-catchdataParticipant <- catchdata %>% 
+catchdataValidParticipants <- catchdataValidParticipants %>% 
   group_by(participant) %>% 
   summarise(
     correct_responses = sum(is_valid_catch_response), 
     incorrect_responses = sum(is_invalid_catch_response))
 
 # total count of participants' catch trials completed on their given experiment
-catchdataParticipant$total <- catchdataParticipant$correct_responses + catchdataParticipant$incorrect_responses
+catchdataValidParticipants$total <- catchdataValidParticipants$correct_responses + catchdataValidParticipants$incorrect_responses
 
 # calculation of accuracy metric
-catchdataParticipant$accuracy <- (catchdataParticipant$correct_responses/catchdataParticipant$total) * 100
+catchdataValidParticipants$accuracy <- (catchdataValidParticipants$correct_responses/catchdataValidParticipants$total) * 100
 
 # Visually inspect to find where one would prefer the cutoff point to be
 # rule of thumb: 70% accuracy but choices should be made on a case-by-case basis
-hist(catchdataParticipant$accuracy)
+hist(catchdataValidParticipants$accuracy)
 
 
-# CHANGE SELECTED CUT-OFF HERE. Results in a DF of 'valid' participants
+# CHANGE SELECTED CUT-OFF HERE. Results in a DF of 'valid' participants (based on correct catch response)
 selectedCutOff <- 70
-catchdataParticipant <- catchdataParticipant %>% filter(accuracy > selectedCutOff)
+catchdataValidParticipants <- catchdataValidParticipants %>% filter(accuracy > selectedCutOff)
 
 # --------------------CHECK FOR COMPLETION OF EXPERIMENT---------------------
+# analysis assumes the experiment methodology invariant that halfway through
+# the experiment the a participant won't be introduced to any new colours
+# i.e the experiment is setup such that a participant can't leave the 
+# experiment early and have seen colour comparisons twice with new colour comparisons
+# still left to be displayed to the participant in any given experiment
 
-trialdataParticipant <- trialdata %>% 
+trialdataValidParticipants <- trialdata %>% 
   group_by(participant, realcomparison) %>% 
   count(realcomparison, name = 'realcomparison_frequency')
 
-trialdataParticipant <- 
-  trialdataParticipant %>% filter(realcomparison_frequency == 2) # 2 due to double pass invariant
+# Results in a DF of 'valid' participants (based on completing the experiment)
+trialdataValidParticipants <- trialdataValidParticipants %>% 
+  group_by(participant) %>%
+  filter(realcomparison_frequency == 2) %>% # 2 due to double pass invariant
+  distinct(participant)
 
+# HOW TO UTILISE THE DFs PREFIXED WITH 'ValidParticipants'
+# Find the *union* of the DFs on based on the 'participant' column to get 
+# a list of valid participants from both analysis steps. Then using your *master*
+# DF containing all the experiment data (here I use trialdata) you filter 
+# based on participants that are in the aformentioned *unioned* list
 
 # set.seed(101)
 # my.mle<-fitdistr(filter(trialdata, participant == participantsIDFrame[400,])$response_time, densfun="gamma")
