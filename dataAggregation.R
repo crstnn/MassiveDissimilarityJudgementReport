@@ -100,10 +100,19 @@ trialdataValidParticipants <- trialdataValidParticipants %>%
   distinct(participant)
 
 # HOW TO UTILISE THE DFs PREFIXED WITH 'ValidParticipants'
-# Find the *union* of the DFs on based on the 'participant' column to get 
+# Find the *intersection* of the DFs on based on the 'participant' column to get 
 # a list of valid participants from both analysis steps. Then using your *master*
 # DF containing all the experiment data (here I use trialdata) you filter 
-# based on participants that are in the aformentioned *unioned* list
+# based on participants that are in the aformentioned *intersected* list
+
+
+cleansedTrialData <- trialdata %>% 
+  filter(participant %in% 
+           intersect(catchdataValidParticipants$participant, 
+                 trialdataValidParticipants$participant))
+
+
+# -------------------------------------------------------------------------
 
 # set.seed(101)
 # my.mle<-fitdistr(filter(trialdata, participant == participantsIDFrame[400,])$response_time, densfun="gamma")
