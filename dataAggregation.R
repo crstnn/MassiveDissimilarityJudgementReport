@@ -83,11 +83,11 @@ selectedCutOff <- 70
 catchdataValidParticipants <- catchdataValidParticipants %>% filter(accuracy > selectedCutOff)
 
 # --------------------CHECK FOR COMPLETION OF EXPERIMENT---------------------
-# analysis assumes the experiment methodology invariant that halfway through
-# the experiment the a participant won't be introduced to any new colours
+# Analysis assumes the experiment methodology invariant that halfway through
+# the experiment a participant won't be introduced to any new colour comparisons
 # i.e the experiment is setup such that a participant can't leave the 
-# experiment early and have seen colour comparisons twice with new colour comparisons
-# still left to be displayed to the participant in any given experiment
+# experiment early and have seen colour comparisons twice with new colour 
+# comparisons still yet to be displayed to the participant in any given experiment
 
 trialdataValidParticipants <- trialdata %>% 
   group_by(participant, realcomparison) %>% 
@@ -103,8 +103,8 @@ trialdataValidParticipants <- trialdataValidParticipants %>%
 # Find the *intersection* of the DFs on based on the 'participant' column to get 
 # a list of valid participants from both analysis steps. Then using your *master*
 # DF containing all the experiment data (here I use trialdata) you filter 
-# based on participants that are in the aformentioned *intersected* list
-
+# based on participants that are in the aformentioned *intersected* list.
+# Like so:
 
 cleansedTrialData <- trialdata %>% 
   filter(participant %in% 
