@@ -11,7 +11,6 @@ source("order_stimuli.R")
 sourceCpp("demcmc_all_dim.cpp")
 
 data_set <-  "color_normal" 
-# "size_angle" "krushke_rect"  "cohen_lines" "color_normal" "lee_navarro" 
 
 #--------------------------------------------------------------------------
 # helper functions
@@ -81,6 +80,7 @@ prepare4bridge <- function(mcmclist, par_names, data) {
 #--------------------------------------------------------------------------
 
 source("dataAggregation.R")
+
 
 r <- readMat("data/helm_ind.mat")
 tmpy <- r$dind[,,1:10]

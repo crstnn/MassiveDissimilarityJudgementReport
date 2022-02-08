@@ -85,7 +85,7 @@ catchdataValidParticipants <- catchdataValidParticipants %>% filter(accuracy > s
 # --------------------CHECK FOR COMPLETION OF EXPERIMENT---------------------
 # Analysis assumes the experiment methodology invariant that halfway through
 # the experiment a participant won't be introduced to any new colour comparisons
-# i.e the experiment is setup such that a participant can't leave the 
+# i.e. the experiment is setup such that a participant can't leave the 
 # experiment early and have seen colour comparisons twice with new colour 
 # comparisons still yet to be displayed to the participant in any given experiment
 
@@ -107,9 +107,9 @@ trialdataValidParticipants <- trialdataValidParticipants %>%
 # Like so:
 
 cleansedTrialData <- trialdata %>% 
-  filter(participant %in% 
+    filter(participant %in% 
            intersect(catchdataValidParticipants$participant, 
-                 trialdataValidParticipants$participant))
+                      trialdataValidParticipants$participant))
 
 
 # -------------------------------------------------------------------------
