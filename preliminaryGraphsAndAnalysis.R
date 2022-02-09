@@ -257,19 +257,7 @@ summary(logitFEModel)
 probitFEModel <- pglm(dissimilarity ~ rDiff + gDiff + bDiff + response_time, data = aggDataDF, index = 'participant', family = ordinal('probit'), model = 'random', method = 'bfgs', start = NULL)
 
 
-
-# newdat <- data.frame(
-#   rDiff = rep(0:1, 200),
-#   gDiff = rep(0:1, each = 200),
-#   bDiff = rep(0:1, each = 200),
-#   response_time_mean = rep(seq(from = 1.9, to = 4, length.out = 100), 4))
-# 
-# newdat <- cbind(newdat, predict(logitModel, newdat, type = "probs"))
-# 
-# 
-# lnewdat <- melt(newdat, id.vars = c("rDiff", "gDiff", "bDiff", "response_time_mean"),
-#                 variable.name = "Level", value.name="Probability")
-# 
+ 
 # ggplot(lnewdat, aes(x = response_time_mean, y = Probability, colour = Level)) +
 #   geom_line() + facet_grid(rDiff ~ gDiff ~ bDiff, labeller="label_both")
 # 
