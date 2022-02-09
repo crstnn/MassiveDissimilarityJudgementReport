@@ -83,9 +83,9 @@ source("dataAggregation.R")
 
 
 r <- readMat("data/helm_ind.mat")
-tmpy <- r$dind[,,1:10]
-tmpy <- tmpy/max(tmpy)
 nSubjects <- 10
+tmpy <- r$dind[,,1:nSubjects]
+tmpy <- tmpy/max(tmpy)
 stimulusNames <- c('rp', 'ro', 'y', 'gy1', 'gy2',
 				 'g', 'b', 'pb', 'p2', 'p1')
 nStimuli <- as.numeric(r$n)
