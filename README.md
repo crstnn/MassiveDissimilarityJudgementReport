@@ -2,7 +2,7 @@
 Data pipeline, statistical aggregation and Bayesian MDS model selection on massive phenomenological dissimilarity data.
 Below will entail a brief outline of what is within each of the files/folders in the directory.
 
-![Data pipeline](https://github.com/crstnn/MassiveDissimilarityJudgementReport/blob/main/img/pipeline.png)
+![Data pipeline](https://github.com/crstnn/MassiveDissimilarityJudgementReport/blob/master/img/pipline.png)
 
 ## dataAggregation.R
 This file contains the steps for (1) a canonical way of saving the data (with adjustments to styling and formats), (2) catch-trial analysis and (3) checking for participants' completion of the experiment.
