@@ -1,7 +1,7 @@
 
 source("dataAggregation.R")
 source("preliminaryGraphsAndAnalysis.R")
-load("cleansedTrialData.Rda") # had to load in data this way rather than calling a file due to namespace conflicts.
+load("cleansedTrialData.Rda")
 
 uniqueColourDoublePassSumDF <- data.frame(matrix(0, ncol = countOfUniqueRowsTotalSet, nrow = countOfUniqueRowsTotalSet))
 uniqueColourDoublePassCountDF <- data.frame(matrix(0, ncol = countOfUniqueRowsTotalSet, nrow = countOfUniqueRowsTotalSet))
