@@ -1,5 +1,4 @@
 # code thanks to Gronau and Lee 2020
-
 library(R.matlab)
 library(truncnorm)
 library(Rcpp)
@@ -9,6 +8,8 @@ library(mcmcplots)
 
 source("order_stimuli.R")
 sourceCpp("demcmc_all_dim.cpp")
+
+load("allParticipantsDissimilarityAverage.Rda") # had to load in data this way rather than calling a file due to namespace conflicts.
 
 data_set <-  "color_normal" 
 
@@ -43,7 +44,7 @@ demcmc_as_mcmc_list <- function(out, xzero_ind, for_bridge = FALSE) {
   for (i in seq_len(n_chains)) {
     if ( ! for_bridge) {
       l[[i]] <- mcmc(cbind(t(theta[i,,]),
-                            unnormalizedLogPosterior = target[i,]))
+                           unnormalizedLogPosterior = target[i,]))
     } else {
       l[[i]] <- mcmc(cbind(t(theta[i,-xzero_ind,])))
     }
@@ -79,17 +80,23 @@ prepare4bridge <- function(mcmclist, par_names, data) {
 # load and prepare data
 #--------------------------------------------------------------------------
 
-source("dataAggregation.R")
 
+# r <- readMat("data/helm_ind.mat")
+# tmpy <- r$dind[,,1:10]
+# tmpy <- tmpy/max(tmpy)
+# nSubjects <- 10
+# stimulusNames <- c('rp', 'ro', 'y', 'gy1', 'gy2',
+#                    'g', 'b', 'pb', 'p2', 'p1')
+# nStimuli <- as.numeric(r$n)
 
-r <- readMat("data/helm_ind.mat")
-nSubjects <- 10
-tmpy <- r$dind[,,1:nSubjects]
-tmpy <- tmpy/max(tmpy)
-stimulusNames <- c('rp', 'ro', 'y', 'gy1', 'gy2',
-				 'g', 'b', 'pb', 'p2', 'p1')
-nStimuli <- as.numeric(r$n)
-  
+allParticipantsDissimilarityAverage <- allParticipantsDissimilarityAverage[1:20, 1:20]
+
+nStimuli <- nrow(allParticipantsDissimilarityAverage)
+tmpy <- array(numeric(),c(nStimuli,nStimuli,0)) # 93 colour pairs
+
+tmpy <- as.array(abind::abind(tmpy, allParticipantsDissimilarityAverage, along=3))
+nSubjects <- 1
+
 
 # constants
 nPairs <- nStimuli * (nStimuli - 1) / 2
@@ -107,6 +114,7 @@ for( i in 1:(nStimuli - 1)) {
 }
 
 new_order <- order_stimuli(y = y, pair = pair)
+
 
 pair_new <- recode_pair(new_order = new_order, pair = pair)
 

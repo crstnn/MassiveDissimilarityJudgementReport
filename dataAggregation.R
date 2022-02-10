@@ -1,14 +1,6 @@
 library(tidyverse)
-library(ramify)
 library(dplyr)
 library(ggplot2)
-library(reshape2)
-library(viridis)
-library(MASS)
-library(hrbrthemes)
-library(scales)
-library(broom)
-library(pglm)
 
 # matching regex of any amount of characters then followed by .csv
 files <- list.files(path="./data", pattern="*.csv", full.names=TRUE)
@@ -111,7 +103,7 @@ cleansedTrialData <- trialdata %>%
            intersect(catchdataValidParticipants$participant, 
                       trialdataValidParticipants$participant))
 
-
+save(cleansedTrialData, file="cleansedTrialData.Rda")
 # -------------------------------------------------------------------------
 
 # set.seed(101)

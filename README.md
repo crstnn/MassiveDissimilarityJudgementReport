@@ -23,6 +23,7 @@ Functions to convert one colour format to the other (going via XYZ).
 
 ## order_stimuli.R and Anything Prefixed with 'demcmc'
 Supporting files as part of the analysis found in [Gronau and Lee 2020](https://link.springer.com/article/10.1007/s42113-020-00082-y).
+Using Euclidean analysis.
 
 ## 'data' Folder
 CSVs collected from Dom's experiment AND data used in Gronau and Lee 2020 (stored in non-CSV format).

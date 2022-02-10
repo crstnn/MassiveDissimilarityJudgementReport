@@ -1,3 +1,15 @@
+library(tidyverse)
+library(ramify)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(viridis)
+library(MASS)
+library(hrbrthemes)
+library(scales)
+library(broom)
+library(pglm)
+
 colourSetHEX <- data.frame(firstColour = firstColourSetHEX, secondColour = secondColourSetHEX)
 
 rowsTotalSetHEX <- rbind(data.frame(colour = firstColourSetHEX), data.frame(colour = secondColourSetHEX)) %>% group_by_all %>% count
@@ -22,8 +34,8 @@ isNewParticipant <- FALSE
 
 
 # loop responsible for population of colour comparison matrix
-for (i in 1:nrow(trialdata)){
-  currentParticipantOBS <- trialdata[i,]
+for (i in 1:nrow(cleansedTrialData)){
+  currentParticipantOBS <- cleansedTrialData[i,]
   currParticipantID <- currentParticipantOBS[,"participant"]
   if(i == 1){
     
@@ -99,8 +111,8 @@ previousParticipantID <- NULL
 isNewParticipant <- FALSE
 
 # loop responsible for population of colour comparison matrix
-for (i in 1:nrow(trialdata)){
-  currentParticipantOBS <- trialdata[i,]
+for (i in 1:nrow(cleansedTrialData)){
+  currentParticipantOBS <- cleansedTrialData[i,]
   currParticipantID <- currentParticipantOBS[,"participant"]
   if(i == 1){
     
@@ -155,8 +167,8 @@ rownames(sameColourDissimilarity) <- rowsTotalSetHEX$colour
 previousParticipantID <- NULL
 isNewParticipant <- FALSE
 
-for (i in 1:nrow(trialdata)){
-  currentParticipantOBS <- trialdata[i,]
+for (i in 1:nrow(cleansedTrialData)){
+  currentParticipantOBS <- cleansedTrialData[i,]
   currParticipantID <- currentParticipantOBS[,"participant"]
   if(i == 1){
     previousParticipantID <- currParticipantID
@@ -195,7 +207,7 @@ ggplot(sameColourDissimilarity, aes(x=average)) + geom_histogram(bins=31)
 ggplot(sameColourDissimilarity, aes(x=count)) + geom_histogram(bins=30) + scale_x_continuous(limits=c(0, 31))
 
 
-aggDataDF <- merge(x = trialdata, y = truthColourTable, by.x = "realcomparison" , by.y = 0, all.x = TRUE) 
+aggDataDF <- merge(x = cleansedTrialData, y = truthColourTable, by.x = "realcomparison" , by.y = 0, all.x = TRUE) 
 aggDataDF$rDiff <- abs(aggDataDF$r1 - aggDataDF$r2)
 aggDataDF$gDiff <- abs(aggDataDF$g1 - aggDataDF$g2)
 aggDataDF$bDiff <- abs(aggDataDF$b1 - aggDataDF$b2)
@@ -208,7 +220,7 @@ ggplot(aggDataDF, aes(x=RGBdiffSum, y=dissimilarity)) +
 # hist(aggDataDF$RGBdiffSum)
 
 # taking the mean of each participant (if double pass was reached)
-aggDataDFStabilised <- trialdata %>% group_by(participant, realcomparison) %>% summarise(dissimilarity_mean=(mean(dissimilarity)), response_time_mean = mean(response_time))
+aggDataDFStabilised <- cleansedTrialData %>% group_by(participant, realcomparison) %>% summarise(dissimilarity_mean=(mean(dissimilarity)), response_time_mean = mean(response_time))
 
 aggDataDFStabilised$dissimilarity_mean <- as.factor(aggDataDFStabilised$dissimilarity_mean)
 
