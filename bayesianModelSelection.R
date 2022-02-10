@@ -1,4 +1,5 @@
 # code thanks to Gronau and Lee 2020
+# all for r=2.0 metric mentioned in paper
 library(R.matlab)
 library(truncnorm)
 library(Rcpp)
@@ -91,10 +92,11 @@ prepare4bridge <- function(mcmclist, par_names, data) {
 
 # A better but far more computationally expensive way would be to do these dissimilarity
 # judgements of each participants (captured in the 3rd dimension of the below array)
-allParticipantsDissimilarityAverage <- allParticipantsDissimilarityAverage[1:20, 1:20]
+# cut down the colour pairs as it was very slow
+#allParticipantsDissimilarityAverage <- allParticipantsDissimilarityAverage[1:20, 1:20]
 
 nStimuli <- nrow(allParticipantsDissimilarityAverage)
-tmpy <- array(numeric(),c(nStimuli,nStimuli,0)) # 93 colour pairs
+tmpy <- array(numeric(),c(nStimuli,nStimuli,0)) 
 
 tmpy <- as.array(abind::abind(tmpy, allParticipantsDissimilarityAverage, along=3))
 nSubjects <- 1

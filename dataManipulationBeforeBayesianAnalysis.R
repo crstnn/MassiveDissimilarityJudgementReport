@@ -53,5 +53,4 @@ allParticipantsDissimilarityAverage <- (uniqueColourDoublePassSumDF / uniqueColo
 
 rownames(allParticipantsDissimilarityAverage) <- names(allParticipantsDissimilarityAverage) <- NULL
 
-
 save(allParticipantsDissimilarityAverage, file="allParticipantsDissimilarityAverage.Rda")
