@@ -89,6 +89,8 @@ prepare4bridge <- function(mcmclist, par_names, data) {
 #                    'g', 'b', 'pb', 'p2', 'p1')
 # nStimuli <- as.numeric(r$n)
 
+# A better but far more computationally expensive way would be to do these dissimilarity
+# judgements of each participants (captured in the 3rd dimension of the below array)
 allParticipantsDissimilarityAverage <- allParticipantsDissimilarityAverage[1:20, 1:20]
 
 nStimuli <- nrow(allParticipantsDissimilarityAverage)
