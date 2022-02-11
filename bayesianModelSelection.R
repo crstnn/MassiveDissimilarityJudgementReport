@@ -12,7 +12,7 @@ sourceCpp("demcmc_all_dim.cpp")
 
 load("allParticipantsDissimilarityAverage.Rda") # had to load in data this way rather than calling a file due to namespace conflicts.
 
-data_set <-  "color_normal" 
+data_set <- "color_adj" 
 
 #--------------------------------------------------------------------------
 # helper functions
@@ -93,7 +93,8 @@ prepare4bridge <- function(mcmclist, par_names, data) {
 # A better but far more computationally expensive way would be to do these dissimilarity
 # judgements of each participants (captured in the 3rd dimension of the below array)
 # cut down the colour pairs as it was very slow
-#allParticipantsDissimilarityAverage <- allParticipantsDissimilarityAverage[1:20, 1:20]
+
+allParticipantsDissimilarityAverage <- allParticipantsDissimilarityAverage[1:20, 1:20]
 
 nStimuli <- nrow(allParticipantsDissimilarityAverage)
 tmpy <- array(numeric(),c(nStimuli,nStimuli,0)) 
@@ -128,103 +129,107 @@ pair_new <- recode_pair(new_order = new_order, pair = pair)
 
 nDimensions <- 5
 
-par_names <- c(paste0("x[", rep(seq_len(nStimuli),
-                                each = nDimensions),
-                      ",", seq_len(nDimensions), "]"), "sdS")
+for (nDim in seq_len(nDimensions)){
+  
+  print("new dim iter")
 
-# number of different elements in x matrix
-n_zero <- nDimensions * (nDimensions + 1) / 2
-n_nonzero <- nStimuli * nDimensions - n_zero
-n_pos <- nDimensions
-n_free <- n_nonzero - n_pos
-
-# zero index
-xzero_ind <- numeric(n_zero)
-i_zero <- 1
-for (i in seq_len(nDimensions)) {
-  for (j in i:nDimensions) {
-    xzero_ind[i_zero] <- j + (i-1)*nDimensions
-    i_zero <- i_zero + 1
+  par_names <- c(paste0("x[", rep(seq_len(nStimuli),
+                                  each = nDim),
+                        ",", seq_len(nDim), "]"), "sdS")
+  
+  # number of different elements in x matrix
+  n_zero <- nDim * (nDim + 1) / 2
+  n_nonzero <- nStimuli * nDim - n_zero
+  n_pos <- nDim
+  n_free <- n_nonzero - n_pos
+  
+  # zero index
+  xzero_ind <- numeric(n_zero)
+  i_zero <- 1
+  for (i in seq_len(nDim)) {
+    for (j in i:nDim) {
+      xzero_ind[i_zero] <- j + (i-1)*nDim
+      i_zero <- i_zero + 1
+    }
   }
+  par_names[xzero_ind]
+  
+  # positive index
+  xpos_ind <- seq_len(nDim) * (nDim + 1)
+  par_names[xpos_ind]
+  
+  # free index
+  xfree_ind <- seq_len(nStimuli * nDim)[-c(xzero_ind, xpos_ind)]
+  par_names[xfree_ind]
+  
+  # sdS index
+  sdS_ind <- nStimuli * nDim + 1
+  
+  data <- list(y = y,
+               nDimensions = nDim,
+               nStimuli = nStimuli,
+               nSubjects = nSubjects,
+               nPairs = nPairs,
+               pair = pair_new,
+               xpos_ind = xpos_ind,
+               xfree_ind = xfree_ind,
+               sdS_ind = sdS_ind)
+  
+  n_chains <- 15
+  n_iter_m <- 500
+  n_thin <- 3
+  n_iter <- 3000 * n_thin
+  init <- init_fun(n_chains = n_chains,
+                   data = data,
+                   par_names = par_names)
+  
+  # specify blocks
+  blocks <- as.list(seq_along(par_names)[-xzero_ind])
+  
+  
+  set.seed(123)
+  
+  
+  # sample with migration first to pull in chains
+  out1 <- demcmc(data = data,
+                 n_iter = n_iter_m,
+                 n_burnin = 0,
+                 n_chains = n_chains,
+                 n_thin = 1,
+                 n_pars = length(par_names),
+                 par_names = par_names,
+                 init = init,
+                 blocks = blocks,
+                 constants = xzero_ind,
+                 p_migrate = 0.05,
+                 report = 50)
+  
+  # sampling
+  out <- demcmc(data = data,
+                n_iter = n_iter,
+                n_burnin = 0,
+                n_thin = n_thin,
+                p_migrate = 0,
+                blocks = blocks,
+                constants = xzero_ind,
+                theta = out1$theta,
+                report = 50)
+  
+  # create mcmc lists (for plots and for bridge sampling)
+  ml_samples <- demcmc_as_mcmc_list(out = out,
+                                    xzero_ind = xzero_ind,
+                                    for_bridge = FALSE)
+  ml_bridge <- demcmc_as_mcmc_list(out = out,
+                                   xzero_ind = xzero_ind,
+                                   for_bridge = TRUE)
+  
+  mcmcplot(ml_samples)
+  
+  save(out, ml_samples, ml_bridge, par_names, data,
+       file = paste0("demcmc_fits/", data_set, "/demcmcfit_dim",
+                     nDim, ".Rdata"))
+
 }
-par_names[xzero_ind]
-
-# positive index
-xpos_ind <- seq_len(nDimensions) * (nDimensions + 1)
-par_names[xpos_ind]
-
-# free index
-xfree_ind <- seq_len(nStimuli * nDimensions)[-c(xzero_ind, xpos_ind)]
-par_names[xfree_ind]
-
-# sdS index
-sdS_ind <- nStimuli * nDimensions + 1
-
-data <- list(y = y,
-             nDimensions = nDimensions,
-             nStimuli = nStimuli,
-             nSubjects = nSubjects,
-             nPairs = nPairs,
-             pair = pair_new,
-             xpos_ind = xpos_ind,
-             xfree_ind = xfree_ind,
-             sdS_ind = sdS_ind)
-
-n_chains <- 15
-n_iter_m <- 500
-n_thin <- 3
-n_iter <- 3000 * n_thin
-init <- init_fun(n_chains = n_chains,
-                 data = data,
-                 par_names = par_names)
-
-# specify blocks
-blocks <- as.list(seq_along(par_names)[-xzero_ind])
-
-
-set.seed(123)
-
-
-# sample with migration first to pull in chains
-out1 <- demcmc(data = data,
-               n_iter = n_iter_m,
-               n_burnin = 0,
-               n_chains = n_chains,
-               n_thin = 1,
-               n_pars = length(par_names),
-               par_names = par_names,
-               init = init,
-               blocks = blocks,
-               constants = xzero_ind,
-               p_migrate = 0.05,
-               report = 50)
-
-# sampling
-out <- demcmc(data = data,
-              n_iter = n_iter,
-              n_burnin = 0,
-              n_thin = n_thin,
-              p_migrate = 0,
-              blocks = blocks,
-              constants = xzero_ind,
-              theta = out1$theta,
-              report = 50)
-
-# create mcmc lists (for plots and for bridge sampling)
-ml_samples <- demcmc_as_mcmc_list(out = out,
-                                  xzero_ind = xzero_ind,
-                                  for_bridge = FALSE)
-ml_bridge <- demcmc_as_mcmc_list(out = out,
-                                 xzero_ind = xzero_ind,
-                                 for_bridge = TRUE)
-
-mcmcplot(ml_samples)
-
-save(out, ml_samples, ml_bridge, par_names, data,
-     file = paste0("demcmc_fits/", data_set, "/demcmcfit_dim",
-                   nDimensions, ".Rdata"))
-
-
 #--------------------------------------------------------------------------
 # bridge sampling
 #--------------------------------------------------------------------------
