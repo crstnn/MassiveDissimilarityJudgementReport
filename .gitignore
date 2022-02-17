@@ -3,3 +3,4 @@
 .Ruserdata
 .RDataTmp
 *.RData
+*.Rdata
