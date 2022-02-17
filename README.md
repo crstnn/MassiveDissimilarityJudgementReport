@@ -29,6 +29,6 @@ Using Euclidean analysis.
 CSVs collected from Dom's experiment AND data used in Gronau and Lee 2020 (stored in non-CSV format).
 
 ## bayesianModelSelection.R
-From methods outlined in Gronau and Lee 2020, we use our data, but with their methods.
+From methods outlined in Gronau and Lee 2020, using our data, but with their methods.
 
 
